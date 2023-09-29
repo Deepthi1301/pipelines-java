@@ -3,20 +3,21 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
-trigger:
-- main
+ - script: |
+      pip install flake8 pylint
+      flake8 mypackage/  # Adjust the path to your package's source code
+      pylint mypackage/  # Adjust the path to your package's source code
+    displayName: 'Code Quality Analysis'
 
-pool:
-  vmImage: ubuntu-latest
+  - script: |
+      pip install coverage
+      coverage run -m pytest
+      coverage report -m
+    displayName: 'Code Coverage'
 
-steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
+  - script: |
+      pip install twine
+      python setup.py sdist bdist_wheel
+      twine upload dist/*
+    displayName: 'Publish to PyPI'
+    condition: succeeded()  # Only publish if previous steps succeed
